@@ -1,18 +1,18 @@
 #ifndef __monitor_h
 #define __monitor_h
 
-#include <stdio.h> 
-#include <stdlib.h> 
+#include <stdio.h>
+#include <stdlib.h>
 
 #ifdef _WIN32
 #include <windows.h>
 #else
-#include <sys/types.h> 
-#include <sys/stat.h> 
-#include <string.h> 
-#include <errno.h> 
-#include <fcntl.h> 
-#include <pthread.h> 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <string.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <pthread.h>
 #include <unistd.h>
 #include <semaphore.h>
 
@@ -22,119 +22,119 @@ class Semaphore
 {
 public:
 
-  Semaphore( int value )
-  {
+Semaphore( int value )
+{
 #ifdef _WIN32
-	sem = CreateSemaphore( NULL, value, 1, NULL );
+        sem = CreateSemaphore( NULL, value, 1, NULL );
 #else
-     if( sem_init( & sem, 0, value ) != 0 )
-       throw "sem_init: failed";
+        if( sem_init( &sem, 0, value ) != 0 )
+                throw "sem_init: failed";
 #endif
-  }
-  ~Semaphore()
-  { 
+}
+~Semaphore()
+{
 #ifdef _WIN32
-	CloseHandle( sem );
+        CloseHandle( sem );
 #else
-	  sem_destroy( & sem ); 
+        sem_destroy( &sem );
 #endif
-  }
+}
 
-  void p()
-  {
+void p()
+{
 #ifdef _WIN32
-	  WaitForSingleObject( sem, INFINITE );
+        WaitForSingleObject( sem, INFINITE );
 #else
-     if( sem_wait( & sem ) != 0 )
-       throw "sem_wait: failed";
+        if( sem_wait( &sem ) != 0 )
+                throw "sem_wait: failed";
 #endif
-  }
+}
 
-  void v()
-  {
+void v()
+{
 #ifdef _WIN32
-	  ReleaseSemaphore( sem, 1, NULL );
+        ReleaseSemaphore( sem, 1, NULL );
 #else
-     if( sem_post( & sem ) != 0 )
-       throw "sem_post: failed";
+        if( sem_post( &sem ) != 0 )
+                throw "sem_post: failed";
 #endif
-  }
-  
+}
+
 
 private:
 
 #ifdef _WIN32
-	HANDLE sem;
+HANDLE sem;
 #else
-	sem_t sem;
+sem_t sem;
 #endif
 };
 
 class Condition
 {
-  friend class Monitor;
+friend class Monitor;
 
 public:
-	Condition() : w( 0 )
-	{
-		waitingCount = 0;
-	}
+Condition() : w( 0 )
+{
+        waitingCount = 0;
+}
 
-	void wait()
-	{
-		w.p();
-	}
+void wait()
+{
+        w.p();
+}
 
-	bool signal()
-	{
-		if( waitingCount )
-		{
-			-- waitingCount;
-			w.v();
-			return true;
-		}//if
-		else
-			return false;
-	}
+bool signal()
+{
+        if( waitingCount )
+        {
+                --waitingCount;
+                w.v();
+                return true;
+        }//if
+        else
+                return false;
+}
 
 private:
-	Semaphore w;
-	int waitingCount; //liczba oczekujacych watkow
+Semaphore w;
+int waitingCount;     //liczba oczekujacych watkow
 };
 
 
 class Monitor
 {
 public:
-	Monitor() : s( 1 ) {}
+Monitor() : s( 1 ) {
+}
 
-	void enter()
-	{
-		s.p();
-	}
+void enter()
+{
+        s.p();
+}
 
-	void leave()
-	{
-		s.v();
-	}
+void leave()
+{
+        s.v();
+}
 
-	void wait( Condition & cond )
-	{
-		++ cond.waitingCount;
-		leave();
-		cond.wait();
-	}
+void wait( Condition & cond )
+{
+        ++cond.waitingCount;
+        leave();
+        cond.wait();
+}
 
-	void signal( Condition & cond )
-	{
-		if( cond.signal() )
-			enter();
-	}
+void signal( Condition & cond )
+{
+        if( cond.signal() )
+                enter();
+}
 
 
 private:
-	Semaphore s;
+Semaphore s;
 };
 
 #endif
-
