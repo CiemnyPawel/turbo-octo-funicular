@@ -73,16 +73,20 @@ void consumer()
         size_t numberOfAllMessages = numberOfProducedMessages * numberOfProducers;
         for(auto it = 0; it < numberOfAllMessages; it++)
         {
-
+                usleep((IndepRand() % 10000));
+                unsigned int randomBuffer = IndepRand() % numberOfBuffers;
+                arrayOfBuffers[randomBuffer].getMessage();
+                printf("Consumer has eaten element from buffer nr: %d\n", randomBuffer);
         }
+        printf("Consumer processed all messages");
 }
 
-void producer(size_t producerNr)
+void producer(size_t producerID)
 {
         for(auto it = 0; it < numberOfProducedMessages; it++)
         {
                 usleep(IndepRand() % 100000);
-                unsigned int message = producerNr * 1000 + IndepRand() % 100;
+                unsigned int message = producerID * 1000 + IndepRand() % 100;
                 unsigned int temp, nrMinBuffer, minValue;
                 minValue = buffersLength +1;
                 for(auto i = 0; i < numberOfBuffers; i++)
@@ -97,6 +101,7 @@ void producer(size_t producerNr)
                 arrayOfBuffers[nrMinBuffer].putMessage(message);
                 for(auto i = 0; i < numberOfBuffers; i++)
                         arrayOfBuffers[i].unlockBufferAfterChoosing();
+                printf("Producer nr %ld produce message nr %d\n", producerID, message);
         }
 }
 int main(int ArgC, char ** ArgV)
