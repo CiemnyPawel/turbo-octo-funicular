@@ -2,8 +2,9 @@
 #include <stdio.h>
 #include <queue>
 #include <pthread.h>
+#include <iostream>
 
-#define numberOfBuffers 20 // can't use global variable
+#define numberOfBuffers 5 // can't use global variable
 size_t buffersLength = 10;
 size_t numberOfProducedMessages = 20;
 size_t numberOfProducers = 10;
@@ -72,20 +73,32 @@ void consumer()
 {
         size_t numberOfAllMessages = numberOfProducedMessages * numberOfProducers;
         for(auto it = 0; it < numberOfAllMessages; it++)
+        //for(auto it = 0; 1==1; it++) // for test purpose
         {
-                usleep((IndepRand() % 10000));
-                unsigned int randomBuffer = IndepRand() % numberOfBuffers;
+                usleep((IndepRand() % 10));
+                unsigned int randomBuffer;
+                while(1 == 1)
+                {
+                        randomBuffer = IndepRand() % numberOfBuffers;
+                        if(arrayOfBuffers[randomBuffer].checkBufferSize() != 0)
+                        {
+                                arrayOfBuffers[randomBuffer].unlockBufferAfterChoosing();
+                                break;
+                        }
+                        arrayOfBuffers[randomBuffer].unlockBufferAfterChoosing();
+                }
                 arrayOfBuffers[randomBuffer].getMessage();
                 printf("Consumer has eaten element from buffer nr: %d\n", randomBuffer);
         }
-        printf("Consumer processed all messages");
+        printf("Consumer processed all messages\n");
 }
 
 void producer(size_t producerID)
 {
         for(auto it = 0; it < numberOfProducedMessages; it++)
+        //for(auto it = 0; 1==1; it++) // for test purpose
         {
-                usleep(IndepRand() % 100000);
+                usleep(IndepRand() % 100);
                 unsigned int message = producerID * 1000 + IndepRand() % 100;
                 unsigned int temp, nrMinBuffer, minValue;
                 minValue = buffersLength +1;
@@ -98,12 +111,25 @@ void producer(size_t producerID)
                                 nrMinBuffer = i;
                         }
                 }
-                arrayOfBuffers[nrMinBuffer].putMessage(message);
                 for(auto i = 0; i < numberOfBuffers; i++)
                         arrayOfBuffers[i].unlockBufferAfterChoosing();
+                arrayOfBuffers[nrMinBuffer].putMessage(message);
                 printf("Producer nr %ld produce message nr %d\n", producerID, message);
         }
 }
+
+void * consumerP(void * notUsed)
+{
+        consumer();
+}
+
+void * producerP(void * producerIdPtr)
+{
+        unsigned int producerID = *(unsigned int *) producerIdPtr;
+        free(producerIdPtr);
+        producer(producerID);
+}
+
 int main(int ArgC, char ** ArgV)
 {
         if(ArgC != 4)
@@ -114,6 +140,13 @@ int main(int ArgC, char ** ArgV)
         numberOfProducers = (size_t) atoi(ArgV[1]);
         numberOfProducedMessages = (size_t) atoi(ArgV[2]);
         buffersLength = (size_t) atoi(ArgV[3]);
-
+        pthread_t consumer;
+        pthread_t *producers = new pthread_t[numberOfProducers];
+        pthread_create(&consumer, NULL, consumerP, (void *) nullptr);
+        for(auto it = 0; it < numberOfProducers; it++)
+                pthread_create(&producers[it], NULL, producerP, (void*) new unsigned int((it+1)));
+        for(auto it = 0; it < numberOfProducers; it++)
+                pthread_join(producers[it], NULL);
+        pthread_join(consumer, NULL);
         return 0;
 }
