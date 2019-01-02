@@ -114,7 +114,7 @@ void producer(size_t producerID)
                 for(auto i = 0; i < numberOfBuffers; i++)
                         arrayOfBuffers[i].unlockBufferAfterChoosing();
                 arrayOfBuffers[nrMinBuffer].putMessage(message);
-                printf("Producer nr %ld produce message nr %d\n", producerID, message);
+                printf("Producer nr %ld produce message nr %d in buffer %d\n", producerID, message, nrMinBuffer);
         }
 }
 
