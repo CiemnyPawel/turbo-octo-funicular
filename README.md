@@ -1,1 +1,1 @@
-# turbo-octo-funicular
+[SOI] Program symulujący działanie monitorów
